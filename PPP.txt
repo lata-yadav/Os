@@ -452,6 +452,48 @@ int main() {
  return 0;
 }
 
+OR
+Basic Program for a Zombie Process
+#include<sys/types.h>
+#include<stdio.h>
+#include<unistd.h>
+#include<stdlib.h>
+int main()
+{
+ pid_t pid;
+ pid = fork();
+ if(pid==0)
+ {
+ exit(0);
+ }
+ else
+ {
+ sleep(50);
+ }
+ return(0);
+}
+Basic Program for an Orphan Process
+#include<sys/types.h>
+#include<stdio.h>
+#include<unistd.h>
+#include<stdlib.h>
+int main()
+{
+ pid_t pid;
+ pid = fork();
+ if(pid==0)
+ {
+ sleep(10);
+ printf("Child Complete");
+ }
+ else
+ {
+ printf("Parent Complete");
+ }
+ return(0);
+}
+
+
 
 20. Implement Semaphore(s) in a C/Java-multithreaded program to simulate the working and solution of 
 Reader-Writer problem. Assume multiple readers and writers.
