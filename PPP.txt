@@ -1,0 +1,891 @@
+30. Demonstrate the use of following system calls by writing an appropriate “C” program. 
+(a) lseek() (b) chmod() (c) umask() (d) access() (e) utime()
+
+Code-
+Iseek()
+#include<unistd.h> 
+#include<stdio.h> 
+#include<fcntl.h> 
+int main()
+{
+int fd;
+char buffer[80];
+char msg[50]="hello i am using linux";
+//open or create the file with read-write access
+fd=open("check.txt", O_RDWR| O_CREAT, S_IRUSR | S_IWUSR); 
+if(fd == -1)
+{
+perror("Error opening file");
+return 1; //Exit the program with an error code
+}
+printf("fd=%d\n", fd);
+printf("\ncheck.txt opened wih read write access\n"); 
+//write the message to the file
+write(fd,msg,sizeof(msg));
+//move the file cursor to the beginning of the file
+lseek(fd,0,SEEK_SET);
+//reading contents of the file
+read(fd,buffer,sizeof(msg));
+printf("\n%s was written to my file\n", buffer);
+close(fd);
+return 0;
+}
+
+
+2) chmod()
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <sys/stat.h>
+int main(int argc,char **argv)
+{
+char mode[]="0777";
+char buf[100]="/home/devendr/c";
+int i;
+i=strtol(mode,0,8);
+if(chmod(buf,i)<0)
+{
+fprintf(stderr,"%s:error in chmod(%s,%s)-%d(%s)\n",
+argv[0],buf,mode,errno,strerror(errno));
+exit(1);
+}
+return(0);
+}
+
+3) umask()
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+int main() {
+ mode_t old_mask, new_mask;
+ // Get the current umask
+ old_mask = umask(0);
+ printf("Current umask: %o\n", old_mask);
+ // Set a new umask
+ new_mask = 022; // Set the umask to allow group and others to read
+ umask(new_mask);
+ printf("New umask: %o\n", new_mask);
+ // Now, create a new file
+ FILE *file = fopen("example_file.txt", "w");
+ if (file == NULL) {
+ perror("Error creating file");
+ return 1;
+ }
+ // Close the file
+ fclose(file);
+ printf("File 'example_file.txt' created with permissions according to umask\n");
+ return 0;
+}
+
+4) access()
+#include <stdio.h>
+#include <unistd.h>
+int main() {
+ const char *filename = "example_file.txt";
+ // Check if the file is readable
+ if (access(filename, R_OK) == 0) {
+ printf("File '%s' is readable\n", filename);
+ } else {
+ perror("Error checking file readability");
+ }
+ // Check if the file is writable
+ if (access(filename, W_OK) == 0) {
+ printf("File '%s' is writable\n", filename);
+ } else {
+ perror("Error checking file writability");
+ }
+ // Check if the file is executable
+ if (access(filename, X_OK) == 0) {
+ printf("File '%s' is executable\n", filename);
+ } else {
+ perror("Error checking file executability");
+ }
+ return 0;
+}
+
+5) utime()
+#include <stdio.h>
+#include <string.h>
+#include<stdlib.h>
+int main(void)
+{
+FILE* uptimefile;
+char uptime_chr[28];
+long uptime=0;
+if((uptimefile=fopen("/proc/uptime","r"))==NULL)
+perror("supt"),exit(EXIT_FAILURE);
+fgets(uptime_chr, 12, uptimefile);
+fclose(uptimefile);
+uptime=strtol(uptime_chr,NULL,10);
+printf("System up for %ld seconds,%ld hours \n",uptime,uptime/ 3600);
+exit(EXIT_SUCCESS);
+}
+
+
+
+29. Write a C program (using appropriate system calls of Linux) which receives roll number and names of ‘n’ 
+students, from the user one-by-one and then stores them in a text file, named as “Student.txt”. After inserting 
+all ‘n’ roll numbers and names, display the contents of file. Also, display the access rights of the file 
+“Student.txt”.
+Code-
+#include <stdio.h> 
+#include <stdlib.h> 
+struct student { 
+ int rollno;
+ char name[200];
+};
+int writef(FILE *file, struct student *s) { 
+ int out = fprintf( 
+ file, 
+ "%d\n%s\n", 
+ s->rollno, s->name 
+ );
+ fflush(file);
+ return out;
+} 
+int readf(FILE *file, struct student *s) { 
+ if (fscanf(file, "%d", &s->rollno) == EOF) return 0;
+ if (fscanf(file, "%s", s->name) == EOF) return 0;
+ return 1;
+} 
+int main() { 
+ int n;
+ printf("Enter the number of students: ");
+ scanf("%d", &n);
+ struct student s;
+ FILE *file = fopen("Student.txt", "w");
+ for (int i = 0; i < n; i++) { 
+ printf("Enter the roll no of student %d: ", i);
+ scanf("%d", &s.rollno);
+ printf("Enter the name of student %d: ", i);
+ scanf("%s", s.name);
+ writef(file, &s);
+ } 
+ fclose(file);
+ file = fopen("Student.txt", "r");
+ int i = 0;
+ while (readf(file, &s)) { 
+ printf("Student #%d: %s\n", s.rollno, s.name);
+ if(i == 5) break;
+ i++;
+ } 
+ fclose(file);
+ return 0;
+}
+
+28.Write a C program (using appropriate system calls of Linux) which generates and stores the characters from 
+‘a’ to ‘z’. Then, display the stored characters in alternative manner, 
+like: a, c, e, g, …, etc
+Code-
+#include <stdio.h> 
+int main() { 
+char characters[26];
+for (char i = 'a'; i <= 'z'; i++) {
+ characters[i - 'a'] = i;
+ } 
+for (int i = 0; i < 26; i += 2) {
+printf("%c ", characters[i]);
+ } 
+ printf("\n");
+return 0;
+} 
+
+
+27.Write a program in ‘C’ which accepts the file or directory name and permission (access rights) from the user 
+and then changes the access rights accordingly. Use appropriate system call(s) of Linux.
+cODE-
+#include <stdio.h> 
+#include <stdlib.h> 
+#include <sys/stat.h> 
+int main() { 
+ char filename[100];
+ unsigned int permissions;
+ // Get file/directory name from user 
+ printf("Enter the file or directory name: ");
+ scanf("%s", filename);
+ // Get new permissions from user 
+ printf("Enter the new permissions (in octal): ");
+ scanf("%o", &permissions);
+ // Change the access rights using chmod system 
+call 
+ if (chmod(filename, permissions) == 0) { 
+ printf("Access rights changed successfully.\n");
+ } else { 
+ perror("Error in changing access rights");
+ return 1;
+ } 
+ return 0;
+}
+
+26.Write an appropriate “C” program which implements the concept of dynamic memory allocation (use of 
+malloc(), calloc(), realloc(), and free() system call).
+
+Code-
+#include <stdlib.h> 
+#include <stdio.h> 
+void printarr(int *array, int size) { 
+ printf("[");
+ for(int i = 0; i < size - 1; i++)
+ printf("%d, ", array[i]);
+ printf("%d]\n", array[size - 1]);
+} 
+int main() { 
+ // Allocating array of size 5 using malloc 
+ int *arr1 = (int *) malloc(sizeof(int) * 5);
+ for(int i = 0; i < 5; i++) arr1[i] = i;
+ printarr(arr1, 5);
+ // increasing the size using realloc 
+ arr1 = (int *) realloc(arr1, sizeof(int) * 10);
+ for(int i = 5; i < 10; i++) arr1[i] = i;
+ printarr(arr1, 10);
+ // Allocating array of size 10 using calloc 
+ // It Initialize all the values to 0 unlike malloc 
+ int *arr2 = (int *) calloc(10, sizeof(int));
+ printarr(arr2, 10);
+ // free(void *_ptr) is used to free the memory 
+ free(arr1);
+ free(arr2);
+}
+
+25.Create a text file, named as “courses.txt” that contains the following four lines: 
+Java Programming 
+Operating System 
+Discrete Structure 
+Write a ‘C’ program that forks three other processes. After forking, the parent process goes into wait state 
+and waits for the children to finish their execution. Each child process reads a line from the “course.txt” file 
+(Child 1 Reads Line 1, Child 2 Reads Line 2, and Child 3 Reads Line 3) and each prints the respective line. 
+The lines can be printed in any order.
+Code-
+#include <stdio.h> 
+#include <stdlib.h> 
+#include <unistd.h> 
+#include <sys/wait.h> 
+int main() { 
+for (int i = 0; i < 3; i++) {
+int pid = fork();
+ if (pid == 0) { 
+int lineNum = i;
+FILE *fp = fopen("courses.txt", "r");
+ if (fp == NULL) { 
+perror("fopen");
+exit(1);
+ } 
+fseek(fp, 0, SEEK_SET);
+for (int j = 0; j < lineNum; j++) {
+char line[1024];
+fgets(line, sizeof(line), fp);
+ } 
+char line[1024];
+fgets(line, sizeof(line), fp);
+fclose(fp);
+printf("%s", line);
+exit(0);
+ } 
+ } 
+for (int i = 0; i < 3; i++) {
+int status;
+wait(&status);
+ } 
+return 0;
+}
+
+
+24.Write an appropriate “C” program which implements the concept of dynamic memory allocation (use of 
+malloc(), calloc(), realloc(), and free() system call).
+
+#include <stdio.h> 
+#include <stdlib.h> 
+int main() { 
+ // Use malloc() to allocate memory for an integer 
+ int *ptr1 = (int *) malloc(sizeof(int));
+ *ptr1 = 10;
+ printf("Value at ptr1: %d\n", *ptr1);
+ // Use calloc() to allocate memory for an array of 5 integers 
+ int *ptr2 = (int *) calloc(5, sizeof(int));
+ for (int i = 0; i < 5; i++) {
+ ptr2[i] = i + 1;
+ } 
+ printf("Values at ptr2: ");
+ for (int i = 0; i < 5; i++) {
+ printf("%d ", ptr2[i]);
+ } 
+ printf("\n");
+ // Use realloc() to change the size of the memory allocated for ptr2 
+ ptr2 = (int *) realloc(ptr2, 10 * sizeof(int));
+ for (int i = 5; i < 10; i++) {
+ ptr2[i] = i + 1;
+ } 
+ printf("Values after realloc at ptr2: ");
+ for (int i = 0; i < 10; i++) {
+ printf("%d ", ptr2[i]);
+ } 
+ printf("\n");
+ // Use free() to deallocate memory 
+ free(ptr1);
+ free(ptr2);
+ return 0;
+}
+
+
+23.Write two “C” programs (A.c and B.c) where one program (A.c) creates a child process and then that child 
+process executes the code of another program (B.c). The logic of program “B.c” is to generate all the prime 
+numbers within the specified limit.
+Code-
+P23A.c
+#include <stdio.h> 
+#include <stdlib.h> 
+#include <sys/types.h> 
+#include <sys/wait.h> 
+#include <unistd.h> 
+int main() { 
+ pid_t child_pid;
+ // Fork a child process 
+ if ((child_pid = fork()) == -1) { 
+ perror("fork");
+ exit(EXIT_FAILURE);
+ } 
+ // Code for the parent process 
+ if (child_pid > 0) { 
+ // Wait for the child process to complete 
+ wait(NULL);
+ printf("Parent process exiting.\n");
+ } 
+ // Code for the child process 
+ else if (child_pid == 0) { 
+ // Execute the code from B.c 
+ execlp("./B", "./B", (char *)NULL);
+ // The following code is executed only if execlp 
+fails 
+ perror("execlp");
+ exit(EXIT_FAILURE);
+ } 
+ return 0;
+}
+
+----
+P23B.c
+#include <stdio.h> 
+int is_prime(int num) { 
+ if (num < 2) { 
+ return 0; // Not prime
+ } 
+ for (int i = 2; i * i <= num; ++i) {
+ if (num % i == 0) { 
+ return 0; // Not prime
+ } 
+ } 
+ return 1; // Prime
+} 
+int main() { 
+ int limit;
+ printf("Enter the limit for prime numbers: ");
+ scanf("%d", &limit);
+ printf("Prime numbers up to %d:\n", limit);
+ for (int i = 2; i <= limit; ++i) {
+ if (is_prime(i)) { 
+ printf("%d\n", i);
+ } 
+ } 
+ return 0;
+} 
+
+Run- gcc A.c -o A   gcc B.c -o B ./A
+22.Write a “C” program which creates a new process and allows both, child and parent, to report their 
+identification numbers (ids). The parent process should wait for the termination of the child process.
+Code-
+#include <stdio.h> 
+#include <stdlib.h> 
+#include <sys/types.h> 
+#include <sys/wait.h> 
+#include <unistd.h> 
+int main() { 
+ pid_t pid = fork();
+ if (pid < 0) { 
+ perror("fork failed");
+ exit(1);
+ } 
+ if (pid == 0) { 
+ printf("This is the child process. \nMy PId is %d \nMy parent's PId is %d.\n", getpid(),getppid());
+ exit(0);
+ } 
+ else { 
+ wait(NULL);
+ printf("This is the parent process. \nMy PId is %d \nMy parent's PId is %d.\n", getpid(),pid);
+ exit(0);
+ } 
+ return 0;
+}
+
+
+21.Create a zombie process and an orphan process in a “C” program with appropriate system call
+#include <stdio.h> 
+#include <unistd.h> 
+#include <stdlib.h> 
+#include <sys/wait.h> 
+int main() { 
+ // Create a zombies process 
+ pid_t zombies_pid = fork();
+ if (zombies_pid == 0) { 
+ // Child process 
+ printf("Child process (zombie) with pid %d\n", getpid());
+ exit(0);
+ } 
+ else { 
+ // Parent process 
+ printf("Parent process with pid %d\n", getpid());
+ sleep(500);
+ wait(NULL);
+ } 
+ // Create an orphan process 
+ pid_t orphan_pid = fork();
+ if (orphan_pid == 0) { 
+ // Child process 
+ printf("Child process (orphan) with pid %d\n", getpid());
+ sleep(500);
+ } 
+ else { 
+ // Parent process 
+ printf("Parent process with pid %d\n", getpid());
+ exit(0);
+ } 
+ return 0;
+}
+
+
+20. Implement Semaphore(s) in a C/Java-multithreaded program to simulate the working and solution of 
+Reader-Writer problem. Assume multiple readers and writers.
+Code-
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <semhore.h>
+#include <unistd.h>
+#define BUFFER_SIZE 10
+struct buffer {
+ int data[BUFFER_SIZE];
+ int in;
+ int out;
+};
+struct buffer buffer;
+sem_t mutex;
+sem_t empty;
+sem_t full;
+sem_t rmutex;
+sem_t wmutex;
+int rcount;
+int wcount;
+void *reader(void *arg) {
+ int item;
+ int id = *(int *)arg;
+ while (1) {
+ sem_wait(&rmutex);
+ rcount++;
+ if (rcount == 1)
+ sem_wait(&wmutex);
+ sem_post(&rmutex);
+ sem_wait(&full);
+ sem_wait(&mutex);
+ item = buffer.data[buffer.out];
+ printf("Reader %d read item %d at index %d\n", id, item, buffer.out);
+ buffer.out = (buffer.out + 1) % BUFFER_SIZE;
+ sem_post(&mutex);
+ sem_post(&empty);
+ sem_wait(&rmutex);
+ rcount--;
+ if (rcount == 0)
+ sem_post(&wmutex);
+ sem_post(&rmutex);
+ sleep(1);
+ }
+}
+void *writer(void *arg) {
+ int item;
+ int id = *(int *)arg;
+ while (1) {
+ item = rand() % 100;
+ sem_wait(&wmutex);
+ wcount++;
+ if (wcount == 1)
+ sem_wait(&empty);
+ sem_post(&wmutex);
+ sem_wait(&mutex);
+ buffer.data[buffer.in] = item;
+ printf("Writer %d wrote item %d at index %d\n", id, item, buffer.in);
+ buffer.in = (buffer.in + 1) % BUFFER_SIZE;
+ sem_post(&mutex);
+ sem_post(&full);
+ sem_wait(&wmutex);
+ wcount--;
+ if (wcount == 0)
+ sem_post(&empty);
+ sem_post(&wmutex);
+ sleep(1);
+ }
+}
+int main() {
+ buffer.in = 0;
+ buffer.out = 0;
+ sem_init(&mutex, 0, 1);
+ sem_init(&empty, 0, BUFFER_SIZE);
+ sem_init(&full, 0, 0);
+ sem_init(&rmutex, 0, 1);
+ sem_init(&wmutex, 0, 1);
+ rcount = 0;
+ wcount = 0;
+ pthread_t r[5], w[5];
+ int id[5];
+ for (int i = 0; i < 5; i++) {
+ id[i] = i + 1;
+ pthread_create(&r[i], NULL, reader, &id[i]);
+ pthread_create(&w[i], NULL, writer, &id[i]);
+ }
+ for (int i = 0; i < 5; i++) {
+ pthread_join(r[i], NULL);
+ pthread_join(w[i], NULL);
+ }
+ sem_destroy(&mutex);
+ sem_destroy(&empty);
+ sem_destroy(&full);
+ sem_destroy(&rmutex);
+ sem_destroy(&wmutex);
+ return 0;
+}
+
+ 19. Write C/Java program to simulate and solve the Producer-Consumer problem.
+#include <stdlib.h> 
+#include <stdio.h> 
+#include <pthread.h> 
+#include <unistd.h> 
+#define BUFFER_SIZE 5 
+#define MAX_LOOP 5 
+int buffer[BUFFER_SIZE];
+int semaphore_mutex = 1;
+int semaphore_empty = BUFFER_SIZE;
+int semaphore_full = 0;
+int in = 0, out = 0;
+void Produce(int *item) { 
+ int wait = rand() % 2 + 1;
+ sleep(wait);
+ *item = rand() % 50000;
+ printf("Produced item #%d \n", *item);
+} 
+void Consume(int *item) { 
+ int wait = rand() % 2 + 1;
+ sleep(wait);
+ printf("Consumed item #%d \n", *item);
+} 
+void wait(int *semaphore) { 
+ while(*semaphore <= 0);
+ *semaphore = *semaphore - 1;
+} 
+void signal(int *semaphore) { 
+ *semaphore = *semaphore + 1;
+} 
+void *Producer(void *threadid) { 
+ printf("Producer is running \n");
+ int item;
+ for(int i = 0; i < MAX_LOOP; i++) {
+ Produce(&item);
+ wait(&semaphore_empty);
+ wait(&semaphore_mutex);
+ buffer[in] = item;
+ in = (in + 1) % BUFFER_SIZE;
+ signal(&semaphore_mutex);
+ signal(&semaphore_full);
+ } 
+ pthread_exit(NULL);
+} 
+void *Consumer(void *threadid) { 
+ printf("Consumer is running \n");
+ for(int i = 0; i < MAX_LOOP; i++) {
+ wait(&semaphore_full);
+wait(&semaphore_mutex);
+ int item = buffer[out];
+ out = (out + 1) % BUFFER_SIZE;
+ signal(&semaphore_mutex);
+ signal(&semaphore_empty);
+ Consume(&item);
+ } 
+ pthread_exit(NULL);
+} 
+int main(int argc, char *argv[]) { 
+ pthread_t threads[2];
+ int rc;
+ rc = pthread_create(&threads[0], NULL, Producer, NULL);
+ if (rc) { 
+ printf("ERROR; return code from pthread_create() is %d \n", rc);
+ exit(-1);
+ } 
+ rc = pthread_create(&threads[1], NULL, Consumer, NULL);
+ if (rc) { 
+ printf("ERROR; return code from pthread_create() is %d \n", rc);
+ exit(-1);
+ } 
+ pthread_exit(NULL);
+}
+
+
+18. Apply Bakery algorithm for synchronization of processes/threads in a C/Java program. Assume appropriate 
+code snippet for critical section
+Code-
+#include <stdio.h> 
+#include <stdlib.h> 
+#include <stdbool.h> 
+#include <pthread.h> 
+#include <unistd.h> 
+#define NUM_THREADS 3 
+#define MAX 2 
+bool choosing[NUM_THREADS];
+int number[NUM_THREADS];
+void *Process(void *threadid) { 
+ int runs = 0;
+ int myturn = (int)threadid;
+ do { 
+ choosing[myturn] = true;
+ int max = 0;
+ for (int i = 0; i < NUM_THREADS; i++) {
+ if (number[i] > max) { 
+ max = number[i];
+ } 
+ } 
+ number[myturn] = max + 1;
+ choosing[myturn] = false;
+ for (int i = 0; i < NUM_THREADS; i++) {
+ while (choosing[i]);
+ while (number[i] != 0 && (number[i] < number[myturn] || (number[i] == number[myturn] && i < 
+myturn)));
+ } 
+ int wait = rand() % 5 + 1;
+ printf("Thread %d is in critical section and will take %ds of time \n", myturn, wait);
+ sleep(wait);
+ printf("Thread %d is out of critical section \n", myturn);
+ number[myturn] = 0;
+ runs++;
+ } while (runs < MAX);
+ pthread_exit(NULL);
+} 
+int main(int argc, char const *argv[]) { 
+ pthread_t threads[NUM_THREADS];
+ int rc;
+ for(int i = 0; i < NUM_THREADS; i++) {
+ choosing[i] = false;
+ number[i] = 0;
+ } 
+ for (int i = 0; i < NUM_THREADS; i++) {
+ rc = pthread_create(&threads[i], NULL, Process, (void *)i);
+ if (rc) { 
+ printf("ERROR; return code from pthread_create() is %d \n", rc);
+ exit(-1);
+ }
+ } 
+ pthread_exit(NULL);
+}
+
+
+17. Apply Peterson algorithm for solving the critical section problem with C/Java multi-threaded 
+programming. Assume appropriate code snippet for critical section.
+#include <stdio.h> 
+#include <stdlib.h> 
+#include <stdbool.h> 
+#inlude <pthread.h> 
+#include <unistd.h> 
+bool flag[2] = {false, false};
+int turn;
+void *Process (void *threadid) { 
+ int wait = rand() % 5 + 1;
+ sleep(wait);
+ long myturn;
+ myturn = (long)threadid;
+ long other = (myturn + 1) % 2;
+ flag[myturn] = true;
+ turn = other;
+ while (flag[other] && turn == other);
+ wait = rand() % 5 + 1;
+ printf("Thread %ld is in critical section and will take %ds of time \n", myturn, wait);
+ sleep(wait);
+ printf("Thread %ld is out of critical section \n", myturn);
+ flag[myturn] = false;
+ pthread_exit(NULL);
+} 
+int main (int argc, char *argv[]) { 
+ // Peterson algorithm 
+ pthread_t threads[2];
+ int rc;
+ int i;
+ for (i = 0; i < 2; i++) {
+ printf("In main: creating thread %d \n", i);
+ rc = pthread_create(&threads[i], NULL, Process, (void *)i);
+ if (rc) { 
+ printf("ERROR; return code from pthread_create() is %d \n", rc);
+ exit(-1);
+ } 
+ } 
+ pthread_exit(NULL);
+}
+
+
+16. 
+Assuming that you are positioned in the directory /home/bvicam, what are these commands presumed to do, 
+and explain whether they will work at all: 
+(i) $ cd ../.. 
+(ii) $ mkdir ../bin 
+(iii) $ rmdir .. 
+(iv) $ ls ..
+
+(i) $ cd ../.. 
+- This command attempts to move two levels up in the directory structure. If the structure allows it (if 
+`/home` exists), it will change the current directory to `/home`. 
+(ii) $ mkdir ../bin 
+- This command attempts to create a directory named `bin` in the parent directory of the current directory 
+(`/home`). It will work if the user has the necessary permissions to create a directory in `/home`. 
+(iii) $ rmdir .. 
+- This command attempts to remove the parent directory of the current directory (`/home/bvicam`). It will 
+likely fail, as you cannot remove the parent directory of the current working directory while you are in it. 
+(iv) $ ls .. 
+- This command lists the contents of the parent directory (`/home`). It will work, showing the files and 
+directories present in `/home`.
+
+15.How does the command mv mca1 mca2 behave, where both mca1 and mca2 are directories, when 
+(i) mca2 exists 
+(ii) mca2 doesn‟t exist?
+ (i) If mca2 exists, the contents of mca1 will be moved into mca2. 
+ (ii) If mca2 doesn't exist, mca1 will be renamed to mca2
+
+
+mkdir mca1
+mkdir mca2
+ls
+mv mca1 mca2
+ls
+cd mca2
+ls
+mv mca2 mca1
+ls
+
+14.Run the following and determine which commands will work? Explain with reasons. 
+(i) $ mkdir a/b/ 
+(ii) $ mkdir a a/b 
+(iii) $ rmdir a/b/c 
+(iv) $ rmdir a a/b 
+(v) $ mkdir /bin/mca 
+(i) $ mkdir a/b/ 
+- This command creates a directory named `b` inside the directory `a`. It will work as expected. 
+(ii) $ mkdir a a/b 
+- This command tries to create two directories: `a` and `a/b`. The first directory (`a`) will be created 
+successfully, but the second (`a/b`) will not be created as the directory `a` does not exist yet. To create nested 
+directories, you should create the parent directory first. Therefore, this command will partially work. 
+(iii) $ rmdir a/b/c 
+- This command attempts to remove the directory `c` inside the directory `b` inside the directory `a`. If the 
+directory structure exists as specified, it will work. However, if any of the directories (`a`, `b`, or `c`) does 
+not exist, it will fail. Ensure that the directory structure exists before using `rmdir`. 
+=>Will work if the directory structure exists; otherwise, it will fail
+(iv) $ rmdir a a/b 
+- This command tries to remove two directories: `a` and `a/b`. The first directory (`a`) will be removed 
+successfully, but the second (`a/b`) will not be removed as it is no longer present after the removal of `a`. 
+Therefore, this command will partially work. 
+(v) $ mkdir /bin/mca 
+- This command creates a directory named `mca` inside the `/bin` directory. It will work if the user executing 
+the command has the necessary permissions to create directories in the `/bin` directory. Ensure that you have 
+the required permissions. 
+=> Will work if the user has the necessary permissions to create directories in `/bin`. 
+
+mkdir a
+mkdir a/b/
+mkdir a a/b
+rmdir a/b/c
+mkdir a/b/c
+rmdir a/b/c
+rmdir a a/b
+mkdir a/b/
+rmdir a a/b
+mkdir /bin/mca
+
+
+13.Find out the result of following: $ cat mca mca mca
+echo "Hello World" > mca
+cat mca mca mca
+
+
+12.Frame ls command to 
+(i) mark directories and executables separately, and 
+(ii) also display hidden files.
+ls-F
+ls-a
+ls -F -a
+
+
+11. Both of the following commands try to open the file mca, but the error messages are a little different. What 
+could be the reason? 
+$ cat mca 
+cat: mca: No such file or directory 
+$ cat < mca 
+bash: mca: No such file or directory
+
+1. The error messages indicate that the file "mca" is not found in the current directory for both commands. 
+The absence of the file or a typo in the filename might be the reason for the errors. 
+2. The first command (`$ cat mca`) tries to display the contents of the file "mca," resulting in the error "cat: 
+mca: No such file or directory." The second command (`$ cat < mca`) attempts input redirection but 
+encounters the same error, "bash: mca: No such file or directory," indicating that the file is not present in the 
+specified location.
+
+
+10. Display the current date in the form dd/mm/yyyy
+date + "%d/%m/%y"
+
+9.Find out whether the following commands are internal or external: 
+echo 
+date 
+pwd 
+ls
+1. echo: Internal command. 
+2. date: External command. 
+3. pwd: External command. 
+4. ls: External command.
+
+8.Create a file mca containing the words “Hello MCA Class!”. Now create a directory bvicam, and 
+then run mv mca bvicam. What do you observe when you run both ls and ls bar?
+Ans Now, let's analyze the outcome when you run both ls and ls bvicam: 
+> Running ls will show the contents of the current directory. Since you moved the "mca" file to 
+the "bvicam" directory, it will not be listed in the current directory. 
+> Running ls bvicam will display the contents of the "bvicam" directory. You should see the 
+"mca" file in that directory. 
+In summary, after these commands, you will observe that the "mca" file is no longer in the current 
+directory but has been successfully moved to the "bvicam" directory.
+Method-1
+ cat > mca.txt 
+Hello MCA Class! 
+ctrl+d 
+ls 
+mkdir bvicam 
+mv mca.txt bvicam 
+ls 
+cd bvicam 
+ls bvicam
+
+Method-2
+echo "Hello MCA Class!" > mca 
+mkdir bvicam 
+mv mca bvicam/ 
+ls 
+ls bvicam 
+
+7.Create a directory, and change to that directory. Next, create another directory in the new directory, and then 
+change to that directory too. Now, run $ cd without any arguments followed by pwd. What do you conclude?
+
+mkdir Test1
+cd Test1
+pwd
+cd
+pwd
+
+6. Run ps and note the PID of your shell. Log out and log in again and run ps again. What do you observe?
+ps 
+cntrl+d - logout 
+ssh - login 
+ps
+
+PID – the unique process ID
+TTY – terminal type that the user is logged into 
+TIME – amount of CPU in minutes and seconds that the process has been running 
+CMD – name of the command that launched the process.
